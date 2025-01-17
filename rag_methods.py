@@ -147,14 +147,18 @@ def stream_llm_rag_response(llm_stream, messages):
 from chromadb import Client
 from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
+import tempfile
 
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings for an in-memory database."""
-    # Configure Chroma for in-memory use (no persistence)
+    """Initialize ChromaDB with OpenAI Embeddings using a temporary directory."""
+    # Create a temporary directory for the session
+    temp_dir = tempfile.TemporaryDirectory()
+
+    # Configure Chroma to use the temporary directory
     settings = Settings(
-        chroma_db_impl="duckdb+parquet",  # Use DuckDB for in-memory
-        persist_directory=None,          # No persistence
-        anonymized_telemetry=False       # Optional: Disable telemetry
+        chroma_db_impl="duckdb+parquet",  # Use DuckDB for in-memory storage
+        persist_directory=temp_dir.name,  # Temporary directory
+        anonymized_telemetry=False       # Disable telemetry (optional)
     )
     chroma_client = Client(settings)
 
@@ -168,6 +172,9 @@ def initialize_vector_db(docs):
     # Add documents to the collection
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
     vector_db.add_documents(documents=docs, embedding=embedding)
+
+    # Clean up the temporary directory after use
+    temp_dir.cleanup()
 
     return vector_db
 
