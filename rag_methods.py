@@ -144,23 +144,24 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
+from chromadb.config import Settings
+from chromadb.api import Chroma
+from langchain.embeddings.openai import OpenAIEmbeddings
+from time import time
+
 def initialize_vector_db(docs):
     """Initialize ChromaDB with OpenAI Embeddings."""
+    settings = Settings(
+        chroma_db_impl="sqlite",
+        persist_directory="./chroma_db",  # Folder for the SQLite database
+    )
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-    vector_db = Chroma.from_documents(
+    return Chroma.from_documents(
         documents=docs,
         embedding=embedding,
-        collection_name=f"{str(time()).replace('.', '')[:14]}_" + st.session_state['session_id'],
+        collection_name=f"collection_{str(time()).replace('.', '')[:14]}",  # Unique collection name
+        client_settings=settings,
     )
-
-    # Manage Chroma collections: Keep only the last 20
-    chroma_client = vector_db._client
-    collection_names = sorted(chroma_client.list_collections())  # Updated to handle only names
-    while len(collection_names) > 20:
-        chroma_client.delete_collection(collection_names.pop(0))
-
-    return vector_db
-
 
 def _split_and_load_docs(docs):
     """Split and load documents into the vector database."""
