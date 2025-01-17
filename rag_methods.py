@@ -145,7 +145,7 @@ def stream_llm_rag_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
 from chromadb import PersistentClient
-from chromadb.config import PersistentSettings
+from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
 import tempfile
 
@@ -155,8 +155,8 @@ def initialize_vector_db(docs):
     temp_dir = tempfile.TemporaryDirectory()
 
     # Updated Chroma client settings
-    settings = PersistentSettings(
-        persist_directory=temp_dir.name,  # Temporary directory
+    settings = Settings(
+        persist_directory=temp_dir.name,  # Temporary directory for persistence
         anonymized_telemetry=False       # Optional: Disable telemetry
     )
 
@@ -180,6 +180,7 @@ def initialize_vector_db(docs):
     )
 
     return collection
+
 
 
 def _split_and_load_docs(docs):
