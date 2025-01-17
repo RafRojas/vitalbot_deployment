@@ -145,30 +145,33 @@ def stream_llm_rag_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
 from chromadb import Client
+from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from time import time
 import uuid
 
 def initialize_vector_db(docs):
-    """Initialize an in-memory ChromaDB with OpenAI Embeddings."""
-    # Ensure a fresh instance of the Chroma client
-    client = Client()
+    """Initialize ChromaDB with OpenAI Embeddings and a persistent configuration."""
+    settings = Settings(
+        chroma_db_impl="duckdb+parquet",  # Use DuckDB+Parquet backend
+        persist_directory="./chroma_db",  # Directory for database files
+    )
+
+    # Initialize the Chroma client with persistent settings
+    client = Client(settings)
 
     # Define a unique collection name
     collection_name = f"collection_{str(time()).replace('.', '')[:14]}"
 
-    # Create or get a collection
-    if collection_name not in [c.name for c in client.list_collections()]:
-        collection = client.get_or_create_collection(name=collection_name)
-    else:
-        collection = client.get_collection(name=collection_name)
+    # Create or get the collection
+    collection = client.get_or_create_collection(name=collection_name)
 
     # Initialize OpenAI embeddings
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
 
     # Add documents to the collection
     for doc in docs:
-        doc_id = str(uuid.uuid4())  # Generate unique ID for each document
+        doc_id = str(uuid.uuid4())  # Generate a unique ID for each document
         collection.add(
             ids=[doc_id],
             documents=[doc.page_content],
