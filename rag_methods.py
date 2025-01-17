@@ -151,14 +151,17 @@ import uuid
 
 def initialize_vector_db(docs):
     """Initialize an in-memory ChromaDB with OpenAI Embeddings."""
-    # Initialize the Chroma client (in-memory mode, no config needed)
-    client = Client()  # Default to in-memory mode
+    # Ensure a fresh instance of the Chroma client
+    client = Client()
 
     # Define a unique collection name
     collection_name = f"collection_{str(time()).replace('.', '')[:14]}"
 
     # Create or get a collection
-    collection = client.get_or_create_collection(name=collection_name)
+    if collection_name not in [c.name for c in client.list_collections()]:
+        collection = client.get_or_create_collection(name=collection_name)
+    else:
+        collection = client.get_collection(name=collection_name)
 
     # Initialize OpenAI embeddings
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
@@ -174,6 +177,7 @@ def initialize_vector_db(docs):
         )
 
     return collection
+
 
 def _split_and_load_docs(docs):
     """Split and load documents into the vector database."""
