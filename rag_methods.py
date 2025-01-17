@@ -150,30 +150,28 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 import tempfile
 
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings using a temporary directory."""
-    # Create a temporary directory for in-memory use
+    """Initialize ChromaDB with OpenAI Embeddings using in-memory mode."""
+    # Create a temporary directory for persistence
     temp_dir = tempfile.TemporaryDirectory()
 
-    # Configure Chroma settings with the temporary directory
+    # Configure Chroma client with in-memory settings
     settings = Settings(
-        chroma_api_impl="local",          # Use the local API implementation
-        persist_directory=temp_dir.name,  # Use the temporary directory
-        anonymized_telemetry=False        # Optional: Disable telemetry
+        chroma_db_impl="duckdb+parquet",  # In-memory DuckDB
+        persist_directory=temp_dir.name,  # Temporary directory
+        anonymized_telemetry=False        # Disable telemetry (optional)
     )
 
-    # Initialize the Chroma client
+    # Initialize Chroma client
     chroma_client = Client(settings)
 
-    # Define the collection name
+    # Define and create the collection
     collection_name = "temp_collection"
-
-    # Create or get the collection
     if collection_name not in [c.name for c in chroma_client.list_collections()]:
         collection = chroma_client.create_collection(name=collection_name)
     else:
         collection = chroma_client.get_collection(name=collection_name)
 
-    # Embed documents and add them to the collection
+    # Add documents with embeddings
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
     embeddings = embedding.embed_documents(docs)
     collection.add(
@@ -182,11 +180,7 @@ def initialize_vector_db(docs):
         metadatas=[{"id": idx} for idx, _ in enumerate(docs)]
     )
 
-    # Ensure the temp directory gets cleaned up after app ends
-    temp_dir.cleanup()
-
     return collection
-
 
 def _split_and_load_docs(docs):
     """Split and load documents into the vector database."""
