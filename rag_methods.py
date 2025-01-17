@@ -152,11 +152,18 @@ import uuid  # To generate unique IDs
 
 def initialize_vector_db(docs):
     """Initialize ChromaDB with OpenAI Embeddings using updated API."""
+    # Check if input documents are empty
     if not docs:
         raise ValueError("Input documents are empty. Cannot initialize vector DB.")
 
+    # Debugging: Inspect the input documents before filtering
+    print(f"Documents before filtering: {docs}")
+
     # Filter and clean documents
     valid_docs = [str(doc).strip() for doc in docs if isinstance(doc, (str, bytes)) and doc.strip()]
+    print(f"Valid documents after filtering: {valid_docs}")  # Debugging
+
+    # Check if there are valid documents
     if not valid_docs:
         raise ValueError("No valid documents found after filtering.")
 
@@ -182,6 +189,9 @@ def initialize_vector_db(docs):
     # Generate embeddings
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
     embeddings = embedding.embed_documents(valid_docs)
+
+    # Debugging: Inspect the generated embeddings
+    print(f"Generated embeddings: {embeddings}")
 
     # Check if embeddings are empty
     if not embeddings:
