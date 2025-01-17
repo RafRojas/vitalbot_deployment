@@ -144,8 +144,8 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
-from chromadb import Client
 from chromadb.config import Settings
+from chromadb import PersistentClient
 from langchain.embeddings.openai import OpenAIEmbeddings
 import tempfile
 
@@ -154,13 +154,14 @@ def initialize_vector_db(docs):
     # Create a temporary directory for the session
     temp_dir = tempfile.TemporaryDirectory()
 
-    # Configure Chroma to use the temporary directory
+    # Configure Chroma client with updated settings
     settings = Settings(
-        chroma_db_impl="duckdb+parquet",  # Use DuckDB for in-memory storage
+        chroma_api_impl="rest",         # Updated API implementation
         persist_directory=temp_dir.name,  # Temporary directory
-        anonymized_telemetry=False       # Disable telemetry (optional)
+        anonymized_telemetry=False        # Optional: Disable telemetry
     )
-    chroma_client = Client(settings)
+
+    chroma_client = PersistentClient(settings)  # New client initialization method
 
     # Create or get a collection
     collection_name = "temp_collection"
@@ -173,10 +174,8 @@ def initialize_vector_db(docs):
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
     vector_db.add_documents(documents=docs, embedding=embedding)
 
-    # Clean up the temporary directory after use
-    temp_dir.cleanup()
-
     return vector_db
+
 
 def _split_and_load_docs(docs):
     """Split and load documents into the vector database."""
