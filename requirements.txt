@@ -3,6 +3,6 @@ langchain
 langchain_community
 openai
 pysqlite3-binary
-chromadb>=0.6.2
+chromadb==0.3.21
 pypdf
 tiktoken
