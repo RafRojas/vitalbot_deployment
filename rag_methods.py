@@ -143,11 +143,6 @@ def stream_llm_rag_response(llm_stream, messages):
 
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
-
-from chromadb.config import Settings
-from chromadb.client import Client
-from langchain.embeddings.openai import OpenAIEmbeddings
-
 from chromadb import Client
 from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
