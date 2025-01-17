@@ -144,23 +144,28 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
-from chromadb.config import Settings
 from chromadb import Client
+from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
-from chromadb import InMemoryClient
 
 def initialize_vector_db(docs):
     """Initialize ChromaDB with OpenAI Embeddings for an in-memory database."""
-    client = InMemoryClient()  # In-memory client
+    # Configure Chroma for in-memory use (no persistence)
+    settings = Settings(
+        chroma_db_impl="duckdb+parquet",  # Use DuckDB for in-memory
+        persist_directory=None,          # No persistence
+        anonymized_telemetry=False       # Optional: Disable telemetry
+    )
+    chroma_client = Client(settings)
 
     # Create or get a collection
     collection_name = "temp_collection"
-    if collection_name in client.list_collections():
-        vector_db = client.get_collection(collection_name)
+    if collection_name in chroma_client.list_collections():
+        vector_db = chroma_client.get_collection(collection_name)
     else:
-        vector_db = client.create_collection(name=collection_name)
+        vector_db = chroma_client.create_collection(name=collection_name)
 
-    # Add documents with embeddings
+    # Add documents to the collection
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
     vector_db.add_documents(documents=docs, embedding=embedding)
 
