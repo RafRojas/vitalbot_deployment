@@ -182,7 +182,6 @@ def initialize_vector_db(docs):
     return collection
 
 
-
 def _split_and_load_docs(docs):
     """Split and load documents into the vector database."""
     text_splitter = RecursiveCharacterTextSplitter(
