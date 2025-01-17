@@ -151,28 +151,22 @@ import uuid
 
 def initialize_vector_db(docs):
     """Initialize ChromaDB with OpenAI Embeddings."""
-    # Configure Chroma client with the new architecture
     client = Client(
         path="./chroma_db"  # Directory for the database
     )
 
-    # Define a unique collection name
     collection_name = f"collection_{str(time()).replace('.', '')[:14]}"
-
-    # Create or get a collection
     collection = client.get_or_create_collection(name=collection_name)
 
-    # Initialize OpenAI embeddings
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
 
-    # Add documents to the collection
     for doc in docs:
-        doc_id = str(uuid.uuid4())  # Generate a unique ID for each document
+        doc_id = str(uuid.uuid4())  # Generate unique ID for each document
         collection.add(
-            ids=[doc_id],  # Unique ID for the document
-            documents=[doc.page_content],  # Content of the document
-            metadatas=[doc.metadata],     # Metadata (optional)
-            embeddings=[embedding.embed_query(doc.page_content)],  # Precomputed embeddings
+            ids=[doc_id],
+            documents=[doc.page_content],
+            metadatas=[doc.metadata],
+            embeddings=[embedding.embed_query(doc.page_content)],
         )
 
     return collection
