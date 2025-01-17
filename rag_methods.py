@@ -152,10 +152,18 @@ import uuid  # To generate unique IDs
 
 def initialize_vector_db(docs):
     """Initialize ChromaDB with OpenAI Embeddings using updated API."""
+    if not docs:
+        raise ValueError("Input documents are empty. Cannot initialize vector DB.")
+
+    # Filter and clean documents
+    valid_docs = [str(doc).strip() for doc in docs if isinstance(doc, (str, bytes)) and doc.strip()]
+    if not valid_docs:
+        raise ValueError("No valid documents found after filtering.")
+
     # Create a temporary directory for persistence
     temp_dir = tempfile.TemporaryDirectory()
 
-    # Updated Chroma client settings
+    # Chroma client settings
     settings = Settings(
         persist_directory=temp_dir.name,  # Temporary directory for persistence
         anonymized_telemetry=False       # Optional: Disable telemetry
@@ -171,15 +179,18 @@ def initialize_vector_db(docs):
     else:
         collection = chroma_client.get_collection(name=collection_name)
 
-    # Ensure `docs` contains only valid strings
-    valid_docs = [str(doc) for doc in docs if isinstance(doc, (str, bytes))]
+    # Generate embeddings
+    embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
+    embeddings = embedding.embed_documents(valid_docs)
+
+    # Check if embeddings are empty
+    if not embeddings:
+        raise ValueError("Embeddings are empty. Ensure documents contain meaningful content.")
 
     # Generate unique IDs for each document
     ids = [f"doc-{idx}-{uuid.uuid4()}" for idx, _ in enumerate(valid_docs)]
 
-    # Embed documents and add them to the collection
-    embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-    embeddings = embedding.embed_documents(valid_docs)
+    # Add documents, embeddings, and metadata to the collection
     collection.add(
         ids=ids,
         embeddings=embeddings,
@@ -188,7 +199,6 @@ def initialize_vector_db(docs):
     )
 
     return collection
-
 
 
 def _split_and_load_docs(docs):
