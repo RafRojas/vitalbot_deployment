@@ -170,13 +170,16 @@ def initialize_vector_db(docs):
     else:
         collection = chroma_client.get_collection(name=collection_name)
 
+    # Ensure `docs` contains only strings
+    valid_docs = [str(doc) for doc in docs if isinstance(doc, (str, bytes))]
+
     # Embed documents and add them to the collection
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-    embeddings = embedding.embed_documents(docs)
+    embeddings = embedding.embed_documents(valid_docs)
     collection.add(
         embeddings=embeddings,
-        documents=docs,
-        metadatas=[{"id": idx} for idx, _ in enumerate(docs)]
+        documents=valid_docs,
+        metadatas=[{"id": idx} for idx, _ in enumerate(valid_docs)]
     )
 
     return collection
