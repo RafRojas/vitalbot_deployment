@@ -147,22 +147,27 @@ def stream_llm_rag_response(llm_stream, messages):
 from chromadb import Client
 from langchain.embeddings.openai import OpenAIEmbeddings
 from time import time
+import uuid
 
 def initialize_vector_db(docs):
     """Initialize ChromaDB with OpenAI Embeddings."""
-    # Corrected settings for ChromaDB with new architecture
-    client = Client()  # Use the new default configuration
+    # Initialize the Chroma client
+    client = Client()
 
     # Define a unique collection name
     collection_name = f"collection_{str(time()).replace('.', '')[:14]}"
 
-    # Create or get a collection
+    # Create or get the collection
     collection = client.get_or_create_collection(name=collection_name)
 
-    # Initialize OpenAI embeddings and add documents
+    # Initialize OpenAI embeddings
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
+
+    # Add documents to the collection
     for doc in docs:
+        doc_id = str(uuid.uuid4())  # Generate a unique ID for each document
         collection.add(
+            ids=[doc_id],  # Unique ID for the document
             documents=[doc.page_content],  # Content of the document
             metadatas=[doc.metadata],     # Metadata (optional)
             embeddings=[embedding.embed_query(doc.page_content)],  # Precomputed embeddings
