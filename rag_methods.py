@@ -143,39 +143,42 @@ def stream_llm_rag_response(llm_stream, messages):
 
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
+
 from chromadb import Client
 from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
-import tempfile
 
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings using a temporary directory."""
-    # Create a temporary directory for the session
-    temp_dir = tempfile.TemporaryDirectory()
-
-    # Configure Chroma to use the temporary directory
+    """Initialize ChromaDB with OpenAI Embeddings using the updated API."""
+    # Configure the Chroma client with the updated settings
     settings = Settings(
-        chroma_db_impl="duckdb+parquet",  # Use DuckDB for in-memory storage
-        persist_directory=temp_dir.name,  # Temporary directory
-        anonymized_telemetry=False       # Disable telemetry (optional)
+        chroma_api_impl="local",
+        anonymized_telemetry=False,  # Optional: disable telemetry
+        persist_directory=None       # Use None to force in-memory mode
     )
+
+    # Create the Chroma client
     chroma_client = Client(settings)
 
-    # Create or get a collection
+    # Define the collection name
     collection_name = "temp_collection"
-    if collection_name in chroma_client.list_collections():
-        vector_db = chroma_client.get_collection(collection_name)
+
+    # Check if the collection exists; if not, create it
+    if collection_name not in [c.name for c in chroma_client.list_collections()]:
+        collection = chroma_client.create_collection(name=collection_name)
     else:
-        vector_db = chroma_client.create_collection(name=collection_name)
+        collection = chroma_client.get_collection(name=collection_name)
 
-    # Add documents to the collection
+    # Embed documents and add them to the collection
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-    vector_db.add_documents(documents=docs, embedding=embedding)
+    embeddings = embedding.embed_documents(docs)
+    collection.add(
+        embeddings=embeddings,
+        documents=docs,
+        metadatas=[{"id": idx} for idx, _ in enumerate(docs)]
+    )
 
-    # Clean up the temporary directory after use
-    temp_dir.cleanup()
-
-    return vector_db
+    return collection
 
 
 def _split_and_load_docs(docs):
