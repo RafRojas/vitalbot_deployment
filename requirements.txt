@@ -4,3 +4,4 @@ langchain_community
 openai
 pysqlite3-binary
 chromadb
+pypdf
