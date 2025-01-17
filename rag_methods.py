@@ -145,20 +145,13 @@ def stream_llm_rag_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
 from chromadb import Client
-from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from time import time
 
 def initialize_vector_db(docs):
     """Initialize ChromaDB with OpenAI Embeddings."""
-    # New Chroma settings
-    settings = Settings(
-        chroma_db_impl="duckdb+parquet",  # Use DuckDB + Parquet backend
-        persist_directory="./chroma_db",  # Directory for Chroma database
-    )
-
-    # Initialize Chroma client with updated settings
-    client = Client(settings)
+    # Corrected settings for ChromaDB with new architecture
+    client = Client()  # Use the new default configuration
 
     # Define a unique collection name
     collection_name = f"collection_{str(time()).replace('.', '')[:14]}"
