@@ -144,23 +144,31 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
+from chromadb.config import Settings
+from chromadb import Client
+from langchain.embeddings.openai import OpenAIEmbeddings
+
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings."""
+    """Initialize ChromaDB with OpenAI Embeddings for an in-memory database."""
+    # Configure Chroma to use an in-memory database
+    settings = Settings(
+        chroma_db_impl="duckdb+parquet",  # Use DuckDB in-memory mode
+        anonymized_telemetry=False       # Disable telemetry (optional)
+    )
+    chroma_client = Client(settings)  # Initialize Chroma client with in-memory settings
+
+    # Create a collection for your documents
+    collection_name = "temp_collection"
+    vector_db = chroma_client.create_collection(name=collection_name)
+
+    # Add documents to the collection with embeddings
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-    vector_db = Chroma.from_documents(
+    vector_db.add_documents(
         documents=docs,
-        embedding=embedding,
-        collection_name=f"{str(time()).replace('.', '')[:14]}_" + st.session_state['session_id'],
+        embedding=embedding
     )
 
-    # Manage Chroma collections: Keep only the last 20
-    chroma_client = vector_db._client
-    collection_names = sorted(chroma_client.list_collections())
-    while len(collection_names) > 20:
-        chroma_client.delete_collection(collection_names.pop(0))
-
     return vector_db
-
 
 def _split_and_load_docs(docs):
     """Split and load documents into the vector database."""
