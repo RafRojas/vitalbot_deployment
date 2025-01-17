@@ -144,71 +144,22 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
-from chromadb import PersistentClient
-from chromadb.config import Settings
-from langchain.embeddings.openai import OpenAIEmbeddings
-import tempfile
-import uuid  # To generate unique IDs
-
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings using updated API."""
-    # Check if input documents are empty
-    if not docs:
-        raise ValueError("Input documents are empty. Cannot initialize vector DB.")
-
-    # Debugging: Inspect the input documents before filtering
-    print(f"Documents before filtering: {docs}")
-
-    # Filter and clean documents
-    valid_docs = [str(doc).strip() for doc in docs if isinstance(doc, (str, bytes)) and doc.strip()]
-    print(f"Valid documents after filtering: {valid_docs}")  # Debugging
-
-    # Check if there are valid documents
-    if not valid_docs:
-        raise ValueError("No valid documents found after filtering.")
-
-    # Create a temporary directory for persistence
-    temp_dir = tempfile.TemporaryDirectory()
-
-    # Chroma client settings
-    settings = Settings(
-        persist_directory=temp_dir.name,  # Temporary directory for persistence
-        anonymized_telemetry=False       # Optional: Disable telemetry
-    )
-
-    # Create the PersistentClient
-    chroma_client = PersistentClient(settings=settings)
-
-    # Define and create the collection
-    collection_name = "temp_collection"
-    if collection_name not in [c.name for c in chroma_client.list_collections()]:
-        collection = chroma_client.create_collection(name=collection_name)
-    else:
-        collection = chroma_client.get_collection(name=collection_name)
-
-    # Generate embeddings
+    """Initialize ChromaDB with OpenAI Embeddings."""
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-    embeddings = embedding.embed_documents(valid_docs)
-
-    # Debugging: Inspect the generated embeddings
-    print(f"Generated embeddings: {embeddings}")
-
-    # Check if embeddings are empty
-    if not embeddings:
-        raise ValueError("Embeddings are empty. Ensure documents contain meaningful content.")
-
-    # Generate unique IDs for each document
-    ids = [f"doc-{idx}-{uuid.uuid4()}" for idx, _ in enumerate(valid_docs)]
-
-    # Add documents, embeddings, and metadata to the collection
-    collection.add(
-        ids=ids,
-        embeddings=embeddings,
-        documents=valid_docs,
-        metadatas=[{"id": idx} for idx, _ in enumerate(valid_docs)]
+    vector_db = Chroma.from_documents(
+        documents=docs,
+        embedding=embedding,
+        collection_name=f"{str(time()).replace('.', '')[:14]}_" + st.session_state['session_id'],
     )
 
-    return collection
+    # Manage Chroma collections: Keep only the last 20
+    chroma_client = vector_db._client
+    collection_names = sorted([collection.name for collection in chroma_client.list_collections()])
+    while len(collection_names) > 20:
+        chroma_client.delete_collection(collection_names.pop(0))
+
+    return vector_db
 
 
 def _split_and_load_docs(docs):
