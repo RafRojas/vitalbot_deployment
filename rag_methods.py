@@ -145,28 +145,28 @@ def stream_llm_rag_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
 from chromadb.config import Settings
-from chromadb import PersistentClient
+from chromadb.client import Client
 from langchain.embeddings.openai import OpenAIEmbeddings
 import tempfile
 
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings using a temporary directory."""
-    # Create a temporary directory for the session
+    """Initialize ChromaDB with OpenAI Embeddings using a temporary in-memory setup."""
+    # Create a temporary directory for in-memory usage
     temp_dir = tempfile.TemporaryDirectory()
 
-    # Configure Chroma client with updated settings
-    settings = Settings(
-        chroma_api_impl="rest",         # Updated API implementation
-        persist_directory=temp_dir.name,  # Temporary directory
-        anonymized_telemetry=False        # Optional: Disable telemetry
+    # Configure the client
+    chroma_client = Client(
+        Settings(
+            chroma_api_impl="local",           # Use the local API implementation
+            persist_directory=temp_dir.name,  # Temporary directory for the session
+            anonymized_telemetry=False        # Optional: Disable telemetry
+        )
     )
-
-    chroma_client = PersistentClient(settings)  # New client initialization method
 
     # Create or get a collection
     collection_name = "temp_collection"
-    if collection_name in chroma_client.list_collections():
-        vector_db = chroma_client.get_collection(collection_name)
+    if collection_name in [c.name for c in chroma_client.list_collections()]:
+        vector_db = chroma_client.get_collection(name=collection_name)
     else:
         vector_db = chroma_client.create_collection(name=collection_name)
 
