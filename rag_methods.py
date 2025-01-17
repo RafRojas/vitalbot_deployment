@@ -145,20 +145,14 @@ def stream_llm_rag_response(llm_stream, messages):
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
 from chromadb import Client
-from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
 from time import time
 import uuid
 
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings."""
-    settings = Settings(
-        chroma_db_impl="duckdb+parquet",  # Use DuckDB+Parquet backend
-        persist_directory="./chroma_db",  # Directory for database files
-    )
-
-    # Initialize the Chroma client with settings
-    client = Client(settings)
+    """Initialize an in-memory ChromaDB with OpenAI Embeddings."""
+    # Initialize the Chroma client (in-memory mode, no config needed)
+    client = Client()  # Default to in-memory mode
 
     # Define a unique collection name
     collection_name = f"collection_{str(time()).replace('.', '')[:14]}"
@@ -171,16 +165,15 @@ def initialize_vector_db(docs):
 
     # Add documents to the collection
     for doc in docs:
-        doc_id = str(uuid.uuid4())  # Generate a unique ID for each document
+        doc_id = str(uuid.uuid4())  # Generate unique ID for each document
         collection.add(
-            ids=[doc_id],  # Unique ID for the document
-            documents=[doc.page_content],  # Content of the document
-            metadatas=[doc.metadata],     # Metadata (optional)
-            embeddings=[embedding.embed_query(doc.page_content)],  # Precomputed embeddings
+            ids=[doc_id],
+            documents=[doc.page_content],
+            metadatas=[doc.metadata],
+            embeddings=[embedding.embed_query(doc.page_content)],
         )
 
     return collection
-
 
 def _split_and_load_docs(docs):
     """Split and load documents into the vector database."""
