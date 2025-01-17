@@ -84,13 +84,10 @@ ipython_config.py
 .python-version
 
 # pipenv
-#Pipfile.lock
-
-# UV
-#uv.lock
+Pipfile.lock
 
 # poetry
-#poetry.lock
+poetry.lock
 
 # pdm
 .pdm.toml
@@ -141,7 +138,7 @@ dmypy.json
 cython_debug/
 
 # PyCharm
-#.idea/
+.idea/
 
 # PyPI configuration file
 .pypirc
@@ -150,3 +147,8 @@ cython_debug/
 .streamlit/secrets.toml
 .streamlit/cache/
 
+# ChromaDB
+chroma_db/
+
+# Logs
+*.log
