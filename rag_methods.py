@@ -2,13 +2,14 @@ import os
 import dotenv
 import streamlit as st
 
-from langchain_community.document_loaders.text import TextLoader
-from langchain_community.document_loaders import (
-    WebBaseLoader,
+from langchain.document_loaders import (
+    TextLoader,
     PyPDFLoader,
-    Docx2txtLoader,
+    WebBaseLoader,
+    Docx2txtLoader
 )
 from langchain.vectorstores import Chroma
+from chromadb.config import Settings 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chat_models import ChatOpenAI
@@ -141,37 +142,33 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
-from chromadb import Client
-from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
-from time import time
-import uuid
 
 def initialize_vector_db(docs):
-    """Initialize an in-memory Chroma vector store (no on-disk persistence)."""
+    # Force ephemeral memory usage
+    chroma_settings = Settings(
+        chroma_api_impl="local",
+        chroma_db_impl="duckdb+memory",
+        anonymized_telemetry=False
+    )
+
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-    # Create a Chroma DB in memory by omitting persist_directory
     vector_db = Chroma.from_documents(
-        docs,
-        embedding,
-        collection_name="my_collection"  # or any fixed name
+        documents=docs,
+        embedding=embedding,
+        collection_name="my_collection",
+        client_settings=chroma_settings,
     )
     return vector_db
 
 def _split_and_load_docs(docs):
-    """Split and load documents into the in‑memory vector database."""
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=5000,
-        chunk_overlap=1000,
-    )
-    document_chunks = text_splitter.split_documents(docs)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=1000)
+    chunks = splitter.split_documents(docs)
 
-    # If you haven’t created a vector_db yet this session, do so now in memory:
     if "vector_db" not in st.session_state:
-        st.session_state.vector_db = initialize_vector_db(document_chunks)
+        st.session_state.vector_db = initialize_vector_db(chunks)
     else:
-        # If we already have an in-memory Chroma, just add the new chunks
-        st.session_state.vector_db.add_documents(document_chunks)
+        st.session_state.vector_db.add_documents(chunks)
 
 def get_conversational_rag_chain(llm):
     """Create conversational RAG chain."""
