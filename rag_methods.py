@@ -142,21 +142,18 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
+from langchain.vectorstores import Chroma
 from langchain.embeddings.openai import OpenAIEmbeddings
 
 def initialize_vector_db(docs):
-    # Force ephemeral memory usage
-    chroma_settings = Settings(
-        chroma_db_impl="duckdb+memory",
-        anonymized_telemetry=False
-    )
-
-    embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
+    """Initialize an ephemeral (in-memory) Chroma using the NEW config style."""
+    embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
     vector_db = Chroma.from_documents(
         documents=docs,
-        embedding=embedding,
+        embedding=embeddings,
         collection_name="my_collection",
-        client_settings=chroma_settings,
+        # Setting `persist_directory=None` => ephemeral usage
+        persist_directory=None
     )
     return vector_db
 
