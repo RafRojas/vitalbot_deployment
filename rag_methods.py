@@ -147,7 +147,6 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 def initialize_vector_db(docs):
     # Force ephemeral memory usage
     chroma_settings = Settings(
-        chroma_api_impl="local",
         chroma_db_impl="duckdb+memory",
         anonymized_telemetry=False
     )
