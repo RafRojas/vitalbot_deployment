@@ -7,6 +7,11 @@ from datetime import datetime, timedelta
 # API Key (Backend Variable)
 OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
+if os.name == 'posix':
+    __import__('pysqlite3')
+    import sys
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage
 
