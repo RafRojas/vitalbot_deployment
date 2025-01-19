@@ -1,6 +1,5 @@
 import os
 import dotenv
-from time import time
 import streamlit as st
 
 from langchain_community.document_loaders.text import TextLoader
@@ -9,7 +8,7 @@ from langchain_community.document_loaders import (
     PyPDFLoader,
     Docx2txtLoader,
 )
-from langchain_community.vectorstores import Chroma
+from langchain.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chat_models import ChatOpenAI
@@ -31,7 +30,7 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 # --- Functions ---
 
 def load_doc_to_db():
-    """Load documents into ChromaDB."""
+    """Load documents into the in‑memory ChromaDB."""
     if "rag_docs" in st.session_state and st.session_state.rag_docs:
         docs = []
         for doc_file in st.session_state.rag_docs:
@@ -41,7 +40,6 @@ def load_doc_to_db():
                     file_path = f"./source_files/{doc_file.name}"
                     with open(file_path, "wb") as file:
                         file.write(doc_file.read())
-
                     try:
                         if doc_file.type == "application/pdf":
                             loader = PyPDFLoader(file_path)
@@ -67,9 +65,8 @@ def load_doc_to_db():
             _split_and_load_docs(docs)
             st.toast("Documents loaded successfully.", icon="✅")
 
-
 def load_url_to_db():
-    """Load URLs into ChromaDB."""
+    """Load URL text into the in‑memory ChromaDB."""
     if "rag_url" in st.session_state and st.session_state.rag_url:
         url = st.session_state.rag_url
         docs = []
@@ -144,56 +141,33 @@ def stream_llm_rag_response(llm_stream, messages):
     # Append the clean response to session state
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
-from chromadb import Client
-from chromadb.config import Settings
 from langchain.embeddings.openai import OpenAIEmbeddings
-from time import time
-import uuid
 
 def initialize_vector_db(docs):
-    """Initialize ChromaDB with OpenAI Embeddings and a persistent configuration."""
-    settings = Settings(
-        chroma_db_impl="duckdb+parquet",  # Use DuckDB+Parquet backend
-        persist_directory="./chroma_db",  # Directory for database files
-    )
-
-    # Initialize the Chroma client with persistent settings
-    client = Client(settings)
-
-    # Define a unique collection name
-    collection_name = f"collection_{str(time()).replace('.', '')[:14]}"
-
-    # Create or get the collection
-    collection = client.get_or_create_collection(name=collection_name)
-
-    # Initialize OpenAI embeddings
+    """Initialize an in-memory Chroma vector store (no on-disk persistence)."""
     embedding = OpenAIEmbeddings(api_key=OPENAI_API_KEY)
-
-    # Add documents to the collection
-    for doc in docs:
-        doc_id = str(uuid.uuid4())  # Generate a unique ID for each document
-        collection.add(
-            ids=[doc_id],
-            documents=[doc.page_content],
-            metadatas=[doc.metadata],
-            embeddings=[embedding.embed_query(doc.page_content)],
-        )
-
-    return collection
+    # Create a Chroma DB in memory by omitting `persist_directory`
+    vector_db = Chroma.from_documents(
+        docs,
+        embedding,
+        collection_name="my_collection"  # or any fixed name
+    )
+    return vector_db
 
 def _split_and_load_docs(docs):
-    """Split and load documents into the vector database."""
+    """Split and load documents into the in‑memory vector database."""
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=5000,
         chunk_overlap=1000,
     )
     document_chunks = text_splitter.split_documents(docs)
 
+    # If you haven’t created a vector_db yet this session, do so now in memory:
     if "vector_db" not in st.session_state:
         st.session_state.vector_db = initialize_vector_db(document_chunks)
     else:
+        # If we already have an in-memory Chroma, just add the new chunks
         st.session_state.vector_db.add_documents(document_chunks)
-
 
 def get_conversational_rag_chain(llm):
     """Create conversational RAG chain."""
