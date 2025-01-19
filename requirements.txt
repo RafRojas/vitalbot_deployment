@@ -2,7 +2,7 @@ streamlit
 langchain
 langchain_community
 openai
-pysqlite3-binary
+pysqlite3-binary>=0.5.0
 chromadb
 pypdf
 tiktoken
